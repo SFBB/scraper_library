@@ -18,7 +18,7 @@ class scraper_base_with_saving(scraper_base):
 
     def run(self):
         try:
-            self.file_has_existed = os.path.exists(self.file_name)
+            # self.file_has_existed = os.path.exists(self.file_name)
             self.run_with_saving()
         except Exception as e:
             self.clean_file()
@@ -29,5 +29,6 @@ class scraper_base_with_saving(scraper_base):
         pass
 
     def clean_file(self):
-        if os.path.exists(self.file_name) and not self.file_has_existed:
+        # if os.path.exists(self.file_name) and not self.file_has_existed:
+        if os.path.exists(self.file_name):
             os.remove(self.file_name)
