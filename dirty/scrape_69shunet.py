@@ -2,6 +2,7 @@ import os
 from time import sleep
 import requests
 from bs4 import BeautifulSoup as Soup
+from tqdm import tqdm
 
 
 
@@ -66,11 +67,14 @@ print("We have found {} chapters.".format(len(chapter_url_list)))
 print("We are scraping per chapter content...")
 
 with open(text_file_name, "a") as file:
-    for chapter_url in chapter_url_list:
-        page = scrape_url(chapter_url)
-        chapter_name = page.select("h2")[0].text
-        chapter_text = parse_html(page.select("div.novelcontent")[0])
-        file.write("{}\n\n\n{}\n\n\n\n\n\n".format(chapter_name, chapter_text))
+    with tqdm(total=len(chapter_url_list)) as pbar:
+        for i, chapter_url in enumerate(chapter_url_list):
+            page = scrape_url(chapter_url)
+            chapter_name = page.select("h2")[0].text
+            chapter_text = parse_html(page.select("div.novelcontent")[0])
+            file.write("{}\n\n\n{}\n\n\n\n\n\n".format(chapter_name, chapter_text))
+            pbar.update(1)
+            pbar.set_description("Scraping {} of {} chapters".format(i+1, len(chapter_url_list)))
 
 print("We have finished scaping this book.")
 print("It saves as {}/{}.".format(os.getcwd(), text_file_name))
