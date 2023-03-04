@@ -17,10 +17,10 @@ def scrape_url(url):
         try:
             return Soup(requests.get(url, timeout=10).content, features="lxml")
         except requests.exceptions.ReadTimeout:
-            print("Timeout, we will trg again in 3s!")
+            print("Timeout, we will try again in 3s!")
             sleep(3)
         except Exception as e:
-            print("Ah, damn! {} happened! We will trt again in 3s!".format(str(e)))
+            print("Ah, damn! {} happened! We will try again in 3s!".format(str(e)))
             sleep(3)
 
 def parse_html(elem):
