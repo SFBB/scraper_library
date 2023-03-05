@@ -78,9 +78,9 @@ class scraper_novel_with_saving(scraper_base_with_saving):
                         print("\t[{}/{}] This index page has {} chapters...".format(chunk_start_index + ii, len(self.scraping_list), len(scraped_records[chunk_start_index + ii])))
                     return index_list
 
-        scrape_chapter_list_mt = multi_thread_scrape_chapter_list(self.max_thread_num, page_index_url_list, self.scrape_chapter_list)
-        scrape_chapter_list_mt.run()
-        chapter_url_list = scrape_chapter_list_mt.get_result()
+            scrape_chapter_list_mt = multi_thread_scrape_chapter_list(self.max_thread_num, page_index_url_list, self.scrape_chapter_list)
+            scrape_chapter_list_mt.run()
+            chapter_url_list = scrape_chapter_list_mt.get_result()
 
         print("We have found {} chapters.".format(len(chapter_url_list)))
         print("We are scraping per chapter content...")
