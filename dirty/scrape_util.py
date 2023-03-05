@@ -31,3 +31,8 @@ class scrape_util():
             elif e.name == 'li':
                 text += '\n- '
         return text
+
+    @staticmethod
+    def divide_chunks(l, n):
+        for i in range(0, len(l), n):
+            yield l[i: i+n]
