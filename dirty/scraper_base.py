@@ -57,7 +57,7 @@ class scraper_novel_with_saving(scraper_base_with_saving):
         print("We are building chapter url list right now...")
 
         chapter_url_list= []
-        if len(page_index_url_list) < 10:
+        if len(page_index_url_list) < 12:
             for i, page_index_url in enumerate(page_index_url_list):
                 chapter_url_list_on_this_page = self.scrape_chapter_list(page_index_url)
                 print("\t[{}/{}] This index page has {} chapters...".format(i+1, len(page_index_url_list), len(chapter_url_list_on_this_page)))
@@ -86,7 +86,7 @@ class scraper_novel_with_saving(scraper_base_with_saving):
 
         with open(text_file_name, "a") as file:
             with tqdm(total=len(chapter_url_list)) as pbar:
-                if len(chapter_url_list) < 10:
+                if len(chapter_url_list) < 12:
                     for i, chapter_url in enumerate(chapter_url_list):
                         chapter_content = self.scrape_chatper(chapter_url)
                         file.write("{}".format(chapter_content))
