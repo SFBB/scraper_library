@@ -1,7 +1,6 @@
 import os
 from scrape_util import scrape_util
-from tqdm import tqdm
-from scraper_base import scraper_base_with_saving
+from scraper_base import scraper_novel_with_saving
 
 
 
@@ -12,54 +11,35 @@ AUTHOR_NAME = "程小一"
 
 
 
-class scraper_69shunet(scraper_base_with_saving):
+class scraper_69shunet(scraper_novel_with_saving):
     def __init__(self, web_url, url, book_title, author_name):
         self.web_url = web_url
         self.url = url
         self.book_title = book_title
         self.author_name = author_name
-        self.file_name = "{} - {}.txt".format(BOOK_TITLE, AUTHOR_NAME)
+        self.file_name = "{} - {}.txt".format(self.book_title, self.author_name)
 
-    def run_with_saving(self):
-        text_file_name = self.file_name
-        with open(text_file_name, "w") as file:
-            file.write("{}\n\n\n{}\n\n\n\n\n\n\n\n\n".format(BOOK_TITLE, AUTHOR_NAME))
-
+    def scrape_index_list(self, url: str) -> list[str]:
         page_url_list = []
-        chapter_url_list = []
-
-        print("We are building index page list right now...")
-
-        page = scrape_util.scrape_url(URL)
+        page = scrape_util.scrape_url(url)
         page_options = page.select('div.listpage')[0].find_all("option")
         for page_option in page_options:
-            page_url_list.append("{}{}".format(WEB_URL, page_option["value"]))
+            page_url_list.append("{}{}".format(self.web_url, page_option["value"]))
+        return page_url_list
 
-        print("There are {} pages to list all chapter index.".format(len(page_url_list)))
-        print("We are building chapter url list right now...")
+    def scrape_chapter_list(self, page_index_url: str) -> list[str]:
+        chapter_url_list = []
+        page = scrape_util.scrape_url(page_index_url)
+        chatper_urls = page.select("div.info_chapters ul.p2")[1].find_all("li")
+        for chapter_url in chatper_urls:
+            chapter_url_list.append("{}{}".format(self.web_url, chapter_url.select("a")[0]["href"]))
+        return chapter_url_list
 
-        for i, page_url in enumerate(page_url_list):
-            page = scrape_util.scrape_url(page_url)
-            chatper_urls = page.select("div.info_chapters ul.p2")[1].find_all("li")
-            print("\t[{}/{}] This index page has {} chapters...".format(i+1, len(page_url_list), len(chatper_urls)))
-            for chapter_url in chatper_urls:
-                chapter_url_list.append("{}{}".format(WEB_URL, chapter_url.select("a")[0]["href"]))
-
-        print("We have found {} chapters.".format(len(chapter_url_list)))
-        print("We are scraping per chapter content...")
-
-        with open(text_file_name, "a") as file:
-            with tqdm(total=len(chapter_url_list)) as pbar:
-                for i, chapter_url in enumerate(chapter_url_list):
-                    page = scrape_util.scrape_url(chapter_url)
-                    chapter_name = page.select("h2")[0].text
-                    chapter_text = scrape_util.html_to_text(page.select("div.novelcontent")[0])
-                    file.write("{}\n\n\n{}\n\n\n\n\n\n".format(chapter_name, chapter_text))
-                    pbar.update(1)
-                    pbar.set_description("Scraping {} of {} chapters".format(i+1, len(chapter_url_list)))
-
-        print("We have finished scaping this book.")
-        print("It saves as {}/{}.".format(os.getcwd(), text_file_name))
+    def scrape_chatper(self, chapter_url: str) -> str:
+        page = scrape_util.scrape_url(chapter_url)
+        chapter_name = page.select("h2")[0].text
+        chapter_text = scrape_util.html_to_text(page.select("div.novelcontent")[0])
+        return "{}\n\n\n{}\n\n\n\n\n\n".format(chapter_name, chapter_text)
 
 if __name__ == "__main__":
     WEB_URL = input("The web url is: ")
