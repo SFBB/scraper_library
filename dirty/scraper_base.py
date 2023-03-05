@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from scrape_util import scrape_util
+from scrape_util import scrape_util, multi_thread_scrape
 from tqdm import tqdm
 import os
 import threading
@@ -64,22 +64,23 @@ class scraper_novel_with_saving(scraper_base_with_saving):
                 chapter_url_list += chapter_url_list_on_this_page
         else: # we use multi thread to spped up
 
-            def scrape_index_list_threaded(page_index_url: str, records: dict[str, list[str]]):
-                records[page_index_url] = self.scrape_chapter_list(page_index_url)
-            
-            page_index_url_list_chunked = scrape_util.divide_chunks(page_index_url_list, self.max_thread_num)
-            page_index_url_list_scraped_records = {}
-            for i, chunk in enumerate(page_index_url_list_chunked):
-                scrape_index_thread_list = []
-                for page_index_url in chunk:
-                    thread = threading.Thread(target=scrape_index_list_threaded, args=(page_index_url,page_index_url_list_scraped_records,))
-                    scrape_index_thread_list.append(thread)
-                    thread.start()
-                for thread in scrape_index_thread_list:
-                    thread.join()
-                for ii, page_index_url in enumerate(chunk):
-                    print("\t[{}/{}] This index page has {} chapters...".format(i*self.max_thread_num+ii+1, len(page_index_url_list), len(page_index_url_list_scraped_records[page_index_url])))
-                    chapter_url_list += page_index_url_list_scraped_records[page_index_url]
+            class multi_thread_scrape_chapter_list(multi_thread_scrape):
+                def __init__(self, max_thread_num, scraping_list, method):
+                    super(multi_thread_scrape_chapter_list, self).__init__(max_thread_num, scraping_list, method)
+                
+                def scrape_handle(self, url: str, index: int, scraped_records: dict[int, list[str]]):
+                    scraped_records[index] = self.method(url)
+                
+                def chunk_handle(self, chunk_start_index: int, chunk: list[str], scraped_records: dict[int, list[str]]):
+                    index_list = []
+                    for ii, url in enumerate(chunk):
+                        index_list += scraped_records[chunk_start_index + ii]
+                        print("\t[{}/{}] This index page has {} chapters...".format(chunk_start_index + ii, len(self.scraping_list), len(scraped_records[chunk_start_index + ii])))
+                    return index_list
+
+        scrape_chapter_list_mt = multi_thread_scrape_chapter_list(self.max_thread_num, page_index_url_list, self.scrape_chapter_list)
+        scrape_chapter_list_mt.run()
+        chapter_url_list = scrape_chapter_list_mt.get_result()
 
         print("We have found {} chapters.".format(len(chapter_url_list)))
         print("We are scraping per chapter content...")
@@ -95,28 +96,29 @@ class scraper_novel_with_saving(scraper_base_with_saving):
 
                 else: # we use multi thread to spped up
         
-                    def scrape_chapter_list_threaded(chapter_url: str, index: int, records: dict[int, list[str]]):
-                            records[index] = self.scrape_chatper(chapter_url)
+                    class multi_thread_scrape_chapter(multi_thread_scrape):
+                        def __init__(self, max_thread_num, scraping_list, method, pbar, file):
+                            super(multi_thread_scrape_chapter, self).__init__(max_thread_num, scraping_list, method)
+                            self.pbar = pbar
+                            self.file = file
+                        
+                        def scrape_handle(self, url: str, index: int, scraped_records: dict[int, list[str]]):
+                            scraped_records[index] = [self.method(url)]
+                        
+                        def chunk_handle(self, chunk_start_index: int, chunk: list[str], scraped_records: dict[int, list[str]]):
+                            pbar.update(len(chunk))
+                            pbar.set_description("Scraping {} of {} chapters".format(chunk_start_index+len(chunk), len(self.scraping_list)))
+                            chunk_text = ""
+                            for ii, url in enumerate(chunk):
+                                if chunk_start_index + ii not in scraped_records:
+                                    print("We have missed {} whose index is {}!". format(url, chunk_start_index+ii))
+                                    continue
+                                chunk_text += scraped_records[chunk_start_index + ii][0]
+                            self.file.write(chunk_text)
+                            return []
 
-                    chapter_url_list_chunked = scrape_util.divide_chunks(chapter_url_list, self.max_thread_num)
-                    scraped_chapter_records = {}
-                    for i, chunk in enumerate(chapter_url_list_chunked):
-                        scrape_chapter_thread_list = []
-                        for ii, chapter_url in enumerate(chunk):
-                            thread = threading.Thread(target=scrape_chapter_list_threaded, args=(chapter_url,i*self.max_thread_num+ii,scraped_chapter_records,))
-                            scrape_chapter_thread_list.append(thread)
-                            thread.start()
-                        for thread in scrape_chapter_thread_list:
-                            thread.join()
-                        pbar.update(len(chunk))
-                        pbar.set_description("Scraping {} of {} chapters".format(i*self.max_thread_num+len(chunk), len(chapter_url_list)))
-                        chunk_text = ""
-                        for ii, chapter_url in enumerate(chunk):
-                            if i*self.max_thread_num+ii not in scraped_chapter_records.keys():
-                                print("We have missed {} whose index is {}!". format(chapter_url, i*self.max_thread_num+ii))
-                                continue
-                            chunk_text += scraped_chapter_records[i*self.max_thread_num+ii]
-                        file.write("{}".format(chunk_text))
+                    scrape_chapter_mt = multi_thread_scrape_chapter(self.max_thread_num, chapter_url_list, self.scrape_chatper, pbar, file)
+                    scrape_chapter_mt.run()
 
         print("We have finished scaping this book.")
         print("It saves as {}/{}.".format(os.getcwd(), text_file_name))
