@@ -43,8 +43,8 @@ class scraper_69shunet(scraper_novel_with_saving):
         return "{}\n\n\n{}\n\n\n\n\n\n".format(chapter_name, chapter_text)
 
 if __name__ == "__main__":
-    # WEB_URL = input("The web url is: ")
-    # URL = input("The book url is: ")
-    # BOOK_TITLE = input("The book title is: ")
-    # AUTHOR_NAME = input("The author name is: ")
+    WEB_URL = input("The web url is: ")
+    URL = input("The book url is: ")
+    BOOK_TITLE = input("The book title is: ")
+    AUTHOR_NAME = input("The author name is: ")
     scraper_69shunet(WEB_URL, URL, BOOK_TITLE, AUTHOR_NAME).run()
