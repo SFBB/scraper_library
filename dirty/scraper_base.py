@@ -46,10 +46,8 @@ class scraper_novel_with_saving(scraper_base_with_saving):
         self.max_thread_num = 6
 
     def run_with_saving(self):
-        text_file_name = self.file_name
-        with open(text_file_name, "w") as file:
-            file.write("{}\n\n\n{}\n\n\n\n\n\n\n\n\n".format(self.book_title, self.author_name))
-
+        self.init_write()
+        
         print("We are building index page list right now...")
         page_index_url_list = self.scrape_index_list(self.url)
 
@@ -118,7 +116,7 @@ class scraper_novel_with_saving(scraper_base_with_saving):
                 scrape_chapter_mt.run()
 
         print("We have finished scaping this book.")
-        print("It saves as {}/{}.".format(os.getcwd(), text_file_name))
+        print("It saves as {}/{}.".format(os.getcwd(), self.file_name))
 
     @abstractmethod
     def scrape_index_list(self, url: str) -> list[str]:
@@ -132,6 +130,39 @@ class scraper_novel_with_saving(scraper_base_with_saving):
     def scrape_chatper(self, chapter_url: str):
         pass
 
+    def init_write(self):
+        text_file_name = self.file_name
+        with open(text_file_name, "w") as file:
+            file.write("{}\n\n\n{}\n\n\n\n\n\n\n\n\n".format(self.book_title, self.author_name))
+
     def write_file_handle(self, index: int, chapter_url: str, content):
         with open(self.file_name, "a") as file:
             file.write("{}".format(content))
+
+class scraper_audio_novel_with_saving(scraper_novel_with_saving):
+    def __init__(self, **kwargs):
+        super(scraper_audio_novel_with_saving, self).__init__(**kwargs)
+        self.folder_name = ""
+        self.suffix = "mp3"
+    
+    def scrape_chatper(self, chapter_url: str) -> dict[str, str]:
+        info = {
+            "title": "",
+            "path": ""
+        }
+        return info
+
+    def init_write(self):
+        if not os.path.exists(self.folder_name):
+            os.makedirs(self.folder_name)
+
+    def write_file_handle(self, index: int, chapter_url: str, content: dict[str, str]):
+        resp = scrape_util.retrive_stream(content["path"])
+        with open('{}/{}.{}'.format(self.folder_name, content["title"], self.suffix), "wb") as file:
+            for chunk in resp.iter_content(chunk_size=512):
+                if chunk:
+                    file.write(chunk)
+
+    def clean_file(self):
+        if os.path.exists(self.folder_name):
+            os.removedirs(self.folder_name)
