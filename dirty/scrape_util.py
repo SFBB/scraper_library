@@ -9,11 +9,11 @@ import threading
 
 class scrape_util():
     @staticmethod
-    def scrape_url(url, soup_features = "lxml"):
+    def scrape_url(url, soup_features = "lxml", cookies=""):
         while True:
             try:
                 headers = {'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_10_1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/39.0.2171.95 Safari/537.36'}
-                return Soup(requests.get(url, headers=headers, timeout=10).content, features=soup_features)
+                return Soup(requests.get(url, headers=headers, cookies=cookies, timeout=10).content, features=soup_features)
             except requests.exceptions.ReadTimeout or requests.exceptions.ConnectTimeout or requests.exceptions.Timeout:
                 print("Timeout, we will try again in 3s!")
                 sleep(3)
@@ -25,9 +25,9 @@ class scrape_util():
                 sleep(3)
 
     @staticmethod
-    def retrive_stream(url):
+    def retrive_stream(url, cookies=""):
         headers = {'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_10_1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/39.0.2171.95 Safari/537.36'}
-        return requests.get(url=url, headers=headers, stream=True)
+        return requests.get(url=url, headers=headers, cookies=cookies, stream=True)
 
     @staticmethod
     def html_to_text(elem):

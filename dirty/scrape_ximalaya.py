@@ -25,7 +25,7 @@ class scraper_ximalaya(scraper_audio_novel_with_saving):
 
     def scrape_chapter_list(self, page_index_url: str) -> list[str]:
         chapter_url_list = []
-        page = scrape_util.scrape_url(page_index_url, "xml")
+        page = scrape_util.scrape_url(page_index_url, "xml", self.authecation_cookies)
         chapter_urls = page.select("ul")[1].select("li")
         chapter_urls.reverse()
         print(chapter_urls[0].select("a")[0]["href"])
@@ -34,7 +34,7 @@ class scraper_ximalaya(scraper_audio_novel_with_saving):
         return chapter_url_list
 
     def scrape_chatper(self, chapter_url: str) -> dict[str, str]:
-        metadata = scrape_util.scrape_url("https://www.ximalaya.com/tracks/{}.json".format(chapter_url))
+        metadata = scrape_util.scrape_url("https://www.ximalaya.com/tracks/{}.json".format(chapter_url), cookies=self.authecation_cookies)
         metadata_json = json.loads(metadata.text)
         play_path = metadata_json["play_path"]
         play_title = metadata_json["title"]

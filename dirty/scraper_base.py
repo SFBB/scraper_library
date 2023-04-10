@@ -8,6 +8,7 @@ import threading
 
 class scraper_base(ABC):
     def __init__(self, **kwargs):
+        self.authecation_cookies = ""
         pass
 
     @abstractmethod
@@ -157,7 +158,7 @@ class scraper_audio_novel_with_saving(scraper_novel_with_saving):
             os.makedirs(self.folder_name)
 
     def write_file_handle(self, index: int, chapter_url: str, content: dict[str, str]):
-        resp = scrape_util.retrive_stream(content["path"])
+        resp = scrape_util.retrive_stream(content["path"], self.authecation_cookies)
         with open('{}/{}.{}'.format(self.folder_name, content["title"], self.suffix), "wb") as file:
             for chunk in resp.iter_content(chunk_size=512):
                 if chunk:
