@@ -162,7 +162,7 @@ class scraper_audio_novel_with_saving(scraper_novel_with_saving):
         if not scrape_util.write_stream(
             url=content["path"],
             cookies=self.authecation_cookies,
-            target_path='{}/{}.{}'.format(self.folder_name, content["title"])
+            target_path='{}/{}.{}'.format(self.folder_name, content["title"], self.suffix)
         ):
             print("We cannot write file with url: {}!".format(content["path"]))
 
