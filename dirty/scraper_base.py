@@ -3,6 +3,7 @@ from scrape_util import scrape_util, multi_thread_scrape
 from tqdm import tqdm
 import os
 import threading
+from time import sleep
 
 
 
@@ -92,7 +93,7 @@ class scraper_novel_with_saving(scraper_base_with_saving):
                     pbar.update(1)
                     pbar.set_description("Scraping {} of {} chapters".format(i+1, len(chapter_url_list)))
 
-            else: # we use multi thread to spped up
+            else: # we use multi thread to speed up
     
                 class multi_thread_scrape_chapter(multi_thread_scrape):
                     def __init__(self, max_thread_num, scraping_list, method, pbar, write_op):
@@ -158,11 +159,12 @@ class scraper_audio_novel_with_saving(scraper_novel_with_saving):
             os.makedirs(self.folder_name)
 
     def write_file_handle(self, index: int, chapter_url: str, content: dict[str, str]):
-        resp = scrape_util.retrive_stream(content["path"], self.authecation_cookies)
-        with open('{}/{}.{}'.format(self.folder_name, content["title"], self.suffix), "wb") as file:
-            for chunk in resp.iter_content(chunk_size=512):
-                if chunk:
-                    file.write(chunk)
+        if not scrape_util.write_stream(
+            url=content["path"],
+            cookies=self.authecation_cookies,
+            target_path='{}/{}.{}'.format(self.folder_name, content["title"])
+        ):
+            print("We cannot write file with url: {}!".format(content["path"]))
 
     def clean_file(self):
         if os.path.exists(self.folder_name):
