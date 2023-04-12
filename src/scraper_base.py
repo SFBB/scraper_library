@@ -4,6 +4,7 @@ from view_base import view_base, view_bash
 import os
 import threading
 from time import sleep
+import shutil
 
 
 
@@ -171,4 +172,4 @@ class scraper_audio_novel_with_saving(scraper_novel_with_saving):
 
     def clean_file(self):
         if os.path.exists(self.folder_name):
-            os.removedirs(self.folder_name)
+            shutil.rmtree(self.folder_name, ignore_errors=True)
