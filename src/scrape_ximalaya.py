@@ -1,4 +1,4 @@
-from scrape_util import scrape_util
+from scrape_util import scrape_util, driver_type
 from scraper_base import scraper_audio_novel_with_saving
 import json
 
@@ -40,10 +40,21 @@ class scraper_ximalaya(scraper_audio_novel_with_saving):
         return chapter_url_list
 
     def scrape_chatper(self, chapter_url: str) -> dict[str, str]:
-        metadata = scrape_util.scrape_url("https://www.ximalaya.com/tracks/{}.json".format(chapter_url), cookies=self.authecation_cookies)
+        target_url = "https://www.ximalaya.com/tracks/{}.json".format(chapter_url)
+        metadata = scrape_util.scrape_url(target_url, cookies=self.authecation_cookies)
         metadata_json = json.loads(metadata.text)
         play_path = metadata_json["play_path"]
         play_title = metadata_json["title"]
+        # That play_path is null means this is a paid album.
+        # We will use webdriver to scrape it.
+        # Make sure the your profile has access to this paid content.
+        # check about:profiles in firefox to retrive such info.
+        if play_path == None:
+            metadata = scrape_util.scrape_url_with_webdriver(target_url, driver_type.Firefox, "", "")
+            metadata_json = json.loads(metadata.text)
+            play_path = metadata_json["play_path"]
+            play_title = metadata_json["title"]
+
         play_info = {}
         play_info["path"] = play_path
         play_info["title"] = play_title
