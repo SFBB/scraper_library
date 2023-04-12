@@ -1,11 +1,22 @@
 from abc import ABC, abstractmethod
 from time import sleep
+from enum import Enum
 import requests
 from bs4 import BeautifulSoup as Soup
 from types import FunctionType
 import threading
+from selenium import webdriver
+from selenium.webdriver.firefox.firefox_profile import FirefoxProfile
 
 
+
+class driver_type(Enum):
+    Firefox = 0, "Firefox"
+    Chrome = 1, "Chrome"
+    def __new__(cls, value, name):
+        member = object.__new__(cls)
+        member._value_ = value
+        return member
 
 class scrape_util():
     @staticmethod
@@ -62,6 +73,34 @@ class scrape_util():
             except Exception as e:
                 print("Ah, damn! {} happened! We will try again in 3s!".format(str(e)))
                 sleep(3)
+
+    @staticmethod
+    def scrape_url_with_webdriver(url, driver_type: driver_type, driver_path: str, driver_profile_path: str, soup_features = "lxml"):
+        try:
+            opts = None
+            driver = None
+            if driver_type == driver_type.Firefox:
+                opts = webdriver.FirefoxOptions()
+                opts.headless = True
+                profile = FirefoxProfile(driver_profile_path)
+                driver = webdriver.Firefox(options=opts, firefox_profile=profile, executable_path=driver_path)
+            if driver_type == driver_type.Chrome:
+                opts = webdriver.ChromeOptions()
+                opts.add_argument("user-data-dir={}".format(driver_path))
+                opts.headless = True
+                driver = webdriver.Chrome(options=opts, executable_path=driver_path)
+
+            if driver != None:
+                driver.get(url)
+                html_source_code = driver.execute_script("return document.body.innerHTML;")
+                driver.quit()
+                return Soup(html_source_code, features=soup_features)
+            return Soup()
+        except Exception as e:
+            print(str(e))
+            if driver != None:
+                driver.quit()
+            raise e
 
     @staticmethod
     def html_to_text(elem):
