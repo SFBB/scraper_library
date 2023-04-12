@@ -45,15 +45,6 @@ class scraper_ximalaya(scraper_audio_novel_with_saving):
         metadata_json = json.loads(metadata.text)
         play_path = metadata_json["play_path"]
         play_title = metadata_json["title"]
-        # That play_path is null means this is a paid album.
-        # We will use webdriver to scrape it.
-        # Make sure the your profile has access to this paid content.
-        # check about:profiles in firefox to retrive such info.
-        if play_path == None:
-            metadata = scrape_util.scrape_url_with_webdriver(target_url, driver_type.Firefox, "", "")
-            metadata_json = json.loads(metadata.text)
-            play_path = metadata_json["play_path"]
-            play_title = metadata_json["title"]
 
         play_info = {}
         play_info["path"] = play_path
