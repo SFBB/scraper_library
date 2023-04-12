@@ -75,25 +75,27 @@ class scrape_util():
                 sleep(3)
 
     @staticmethod
-    def scrape_url_with_webdriver(url, driver_type: driver_type, driver_path: str, driver_profile_path: str, soup_features = "lxml"):
-        try:
-            opts = None
-            driver = None
-            if driver_type == driver_type.Firefox:
-                opts = webdriver.FirefoxOptions()
-                opts.headless = True
-                profile = FirefoxProfile(driver_profile_path)
-                driver = webdriver.Firefox(options=opts, firefox_profile=profile, executable_path=driver_path)
-            if driver_type == driver_type.Chrome:
-                opts = webdriver.ChromeOptions()
-                opts.add_argument("user-data-dir={}".format(driver_path))
-                opts.headless = True
-                driver = webdriver.Chrome(options=opts, executable_path=driver_path)
+    def make_webdriver(driver_type: driver_type, driver_path: str, driver_profile_path: str, headless = True):
+        opts = None
+        driver = None
+        if driver_type == driver_type.Firefox:
+            opts = webdriver.FirefoxOptions()
+            opts.headless = headless
+            profile = FirefoxProfile(driver_profile_path)
+            driver = webdriver.Firefox(options=opts, firefox_profile=profile, executable_path=driver_path)
+        if driver_type == driver_type.Chrome:
+            opts = webdriver.ChromeOptions()
+            opts.add_argument("user-data-dir={}".format(driver_path))
+            opts.headless = headless
+            driver = webdriver.Chrome(options=opts, executable_path=driver_path)
+        return driver
 
+    @staticmethod
+    def scrape_url_with_webdriver(url, driver: webdriver, soup_features = "lxml"):
+        try:
             if driver != None:
                 driver.get(url)
                 html_source_code = driver.execute_script("return document.body.innerHTML;")
-                driver.quit()
                 return Soup(html_source_code, features=soup_features)
             return Soup()
         except Exception as e:
