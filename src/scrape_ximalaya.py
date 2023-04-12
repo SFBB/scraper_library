@@ -53,8 +53,8 @@ class scraper_ximalaya(scraper_audio_novel_with_saving):
 
 
 if __name__ == "__main__":
-    # WEB_URL = input("The web url is: ")
-    # URL = input("The book url is: ")
-    # BOOK_TITLE = input("The book title is: ")
-    # AUTHOR_NAME = input("The author name is: ")
+    WEB_URL = input("The web url is: ")
+    URL = input("The book url is: ")
+    BOOK_TITLE = input("The book title is: ")
+    AUTHOR_NAME = input("The author name is: ")
     scraper_ximalaya(WEB_URL, URL, BOOK_TITLE, AUTHOR_NAME).run()
