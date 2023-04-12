@@ -18,7 +18,7 @@ class scraper_ximalaya(scraper_audio_novel_with_saving):
         self.author_name = author_name
         self.folder_name = "{} - {}".format(self.book_title, self.author_name)
         self.file_name = self.folder_name
-        self.suffix = ".m4a"
+        self.suffix = "m4a"
 
     def scrape_index_list(self, url: str) -> list[str]:
         return [url]
@@ -53,8 +53,8 @@ class scraper_ximalaya(scraper_audio_novel_with_saving):
 
 
 if __name__ == "__main__":
-    WEB_URL = input("The web url is: ")
-    URL = input("The book url is: ")
-    BOOK_TITLE = input("The book title is: ")
-    AUTHOR_NAME = input("The author name is: ")
+    # WEB_URL = input("The web url is: ")
+    # URL = input("The book url is: ")
+    # BOOK_TITLE = input("The book title is: ")
+    # AUTHOR_NAME = input("The author name is: ")
     scraper_ximalaya(WEB_URL, URL, BOOK_TITLE, AUTHOR_NAME).run()
