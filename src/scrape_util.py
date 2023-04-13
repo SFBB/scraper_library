@@ -114,7 +114,7 @@ class scrape_util():
                 if headers == {}:
                     headers = {'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_10_1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/39.0.2171.95 Safari/537.36'}
                 session.get(url, headers=headers, timeout=10)
-                return session.cookies.get_dict()
+                return session.cookies.get_dict(), session
             except requests.exceptions.ReadTimeout or requests.exceptions.ConnectTimeout or requests.exceptions.Timeout:
                 print("Timeout, we will try again in 3s!")
                 sleep(3)
