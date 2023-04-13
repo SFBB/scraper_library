@@ -25,6 +25,9 @@ class view_bash(view_base):
         super(view_bash, self).__init__(**kwargs)
         self.bar = None
 
+    def __del__(self):
+        self.bar.disable()
+
     def print(self, text):
         print(text)
 
