@@ -20,10 +20,11 @@ class driver_type(Enum):
 
 class scrape_util():
     @staticmethod
-    def scrape_url(url, soup_features = "lxml", cookies={}):
+    def scrape_url(url, soup_features = "lxml", cookies={}, headers={}):
         while True:
             try:
-                headers = {'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_10_1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/39.0.2171.95 Safari/537.36'}
+                if headers == {}:
+                    headers = {'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_10_1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/39.0.2171.95 Safari/537.36'}
                 return Soup(requests.get(url, headers=headers, cookies=cookies, timeout=10).content, features=soup_features)
             except requests.exceptions.ReadTimeout or requests.exceptions.ConnectTimeout or requests.exceptions.Timeout:
                 print("Timeout, we will try again in 3s!")
@@ -36,10 +37,11 @@ class scrape_util():
                 sleep(3)
 
     @staticmethod
-    def retrive_stream(url, cookies={}):
+    def retrive_stream(url, cookies={}, headers={}):
         while True:
             try:
-                headers = {'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_10_1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/39.0.2171.95 Safari/537.36'}
+                if headers == {}:
+                    headers = {'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_10_1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/39.0.2171.95 Safari/537.36'}
                 return requests.get(url=url, headers=headers, cookies=cookies, timeout=10, stream=True)
             except requests.exceptions.ReadTimeout or requests.exceptions.ConnectTimeout or requests.exceptions.Timeout:
                 print("Timeout, we will try again in 3s!")
@@ -103,6 +105,42 @@ class scrape_util():
             if driver != None:
                 driver.quit()
             raise e
+
+    @staticmethod
+    def get_session_cookies(url, headers={}):
+        while True:
+            try:
+                session = requests.Session()
+                if headers == {}:
+                    headers = {'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_10_1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/39.0.2171.95 Safari/537.36'}
+                session.get(url, headers=headers, timeout=10)
+                return session.cookies.get_dict()
+            except requests.exceptions.ReadTimeout or requests.exceptions.ConnectTimeout or requests.exceptions.Timeout:
+                print("Timeout, we will try again in 3s!")
+                sleep(3)
+            except requests.exceptions.MissingSchema or requests.exceptions.InvalidJSONError as e:
+                print("Scrape_url falied with exception: {}".format(str(e)))
+                raise e
+            except Exception as e:
+                print("Ah, damn! {} happened! We will try again in 3s!".format(str(e)))
+                sleep(3)
+
+    @staticmethod
+    def post_request(url, request={}, cookies={}, headers={}, soup_features = "lxml"):
+        while True:
+            try:
+                if headers == {}:
+                    headers = {'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_10_1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/39.0.2171.95 Safari/537.36'}
+                return Soup(requests.post(url, json=request, headers=headers, cookies=cookies, timeout=10).content, features=soup_features)
+            except requests.exceptions.ReadTimeout or requests.exceptions.ConnectTimeout or requests.exceptions.Timeout:
+                print("Timeout, we will try again in 3s!")
+                sleep(3)
+            except requests.exceptions.MissingSchema or requests.exceptions.InvalidJSONError as e:
+                print("Scrape_url falied with exception: {}".format(str(e)))
+                raise e
+            except Exception as e:
+                print("Ah, damn! {} happened! We will try again in 3s!".format(str(e)))
+                sleep(3)
 
     @staticmethod
     def html_to_text(elem):
