@@ -132,3 +132,44 @@ class ProgressReporter(ABC):
     def initialize_progress(self, total: int) -> None:
         """Initialize a new progress bar"""
         pass
+
+@runtime_checkable
+class QAScraper(Protocol):
+    """Protocol for question-and-answer scrapers"""
+    
+    def scrape_qa_source(self, url: str) -> Dict[str, Any]:
+        """
+        Scrape a Q&A source (website, social media profile, etc.)
+        
+        Args:
+            url: URL of the Q&A source
+            
+        Returns:
+            Dictionary containing scraped Q&A content
+        """
+        ...
+    
+    def filter_qa_content(self, content: Dict[str, Any], filters: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        Filter Q&A content based on criteria
+        
+        Args:
+            content: The Q&A content to filter
+            filters: Dictionary of filter criteria
+            
+        Returns:
+            Filtered Q&A content
+        """
+        ...
+    
+    def extract_qa_pairs(self, raw_content: str) -> List[Dict[str, str]]:
+        """
+        Extract question-and-answer pairs from raw content
+        
+        Args:
+            raw_content: Raw text containing Q&A content
+            
+        Returns:
+            List of dictionaries with 'question' and 'answer' keys
+        """
+        ...
