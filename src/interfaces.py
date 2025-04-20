@@ -55,6 +55,30 @@ class NovelScraper(Scraper):
         """
         pass
     
+    def get_chapter_list(self, url: str) -> List[str]:
+        """
+        Get list of all chapter URLs for a novel.
+        
+        This method combines get_index_pages() and get_chapter_urls() to provide
+        a simplified interface for getting all chapter URLs in one call.
+        
+        Args:
+            url: Main novel URL
+            
+        Returns:
+            List of all chapter URLs
+        """
+        # Get all index pages
+        index_pages = self.get_index_pages(url)
+        
+        # Get chapter URLs from each index page
+        all_chapter_urls = []
+        for index_url in index_pages:
+            chapter_urls = self.get_chapter_urls(index_url)
+            all_chapter_urls.extend(chapter_urls)
+        
+        return all_chapter_urls
+    
     @abstractmethod
     def get_chapter_content(self, chapter_url: str) -> Dict[str, Any]:
         """
