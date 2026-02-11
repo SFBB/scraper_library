@@ -1,0 +1,13 @@
+[project]
+name = "scraper-library"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+    "beautifulsoup4==4.12.2",
+    "lxml>=6.0.2",
+    "requests==2.25.1",
+    "selenium==4.8.3",
+    "tqdm==4.65.0",
+]
