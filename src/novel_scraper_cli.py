@@ -69,6 +69,19 @@ def parse_args():
         help="Maximum number of chapters to download"
     )
     
+    # Range of chapters
+    parser.add_argument(
+        "--range", "-r",
+        help="Range of chapters to download (e.g., '1-10', '5-', '-10', 'all')"
+    )
+    
+    # Interactive mode
+    parser.add_argument(
+        "--interactive", "-i",
+        action="store_true",
+        help="Enable interactive mode to choose chapters after seeing the total count"
+    )
+    
     # Threading options
     parser.add_argument(
         "--threads", "-t",
@@ -134,6 +147,15 @@ def main():
         # Create progress reporter
         progress_reporter = ConsoleProgressReporter()
         
+        # Define range callback for interactive mode
+        range_callback = None
+        if args.interactive:
+            def interactive_range_callback(total_count):
+                print(f"\nTotal chapters found: {total_count}")
+                choice = input("Enter range to download (e.g., 1-10, 5-, -10, or 'all' [default]): ").strip()
+                return choice if choice else "all"
+            range_callback = interactive_range_callback
+        
         # Create appropriate coordinator based on scraper type
         if hasattr(scraper, "get_audio_content"):
             coordinator = AudioNovelScraperCoordinator(
@@ -155,7 +177,9 @@ def main():
         # Start scraping
         result = coordinator.scrape_novel(
             novel_url=args.url,
-            max_chapters=args.max_chapters
+            max_chapters=args.max_chapters,
+            chapter_range=args.range,
+            range_callback=range_callback
         )
         
         # Check result

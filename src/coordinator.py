@@ -16,6 +16,7 @@ sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
 from interfaces import NovelScraper, AudioNovelScraper, Adapter, ProgressReporter
 from threading_utils import BatchProcessor
+from scrape_util import scrape_util
 
 # Configure logging
 logging.basicConfig(
@@ -50,13 +51,19 @@ class NovelScraperCoordinator:
         self.delay = delay_between_requests
         self.threading_manager = BatchProcessor()
     
-    def scrape_novel(self, novel_url: str, max_chapters: Optional[int] = None) -> Dict[str, Any]:
+    def scrape_novel(self, 
+                    novel_url: str, 
+                    max_chapters: Optional[int] = None,
+                    chapter_range: Optional[str] = None,
+                    range_callback: Optional[Any] = None) -> Dict[str, Any]:
         """
         Scrape a novel and process it with the adapter.
         
         Args:
             novel_url: URL of the novel to scrape
             max_chapters: Optional limit on number of chapters to scrape
+            chapter_range: Optional range of chapters to scrape (e.g., '1-10')
+            range_callback: Optional callback to request range after getting total count
             
         Returns:
             Dictionary with results from the adapter
@@ -125,12 +132,28 @@ class NovelScraperCoordinator:
                         )
                     time.sleep(self.delay)  # Be nice to the server
             
-            # Apply chapter limit if specified
-            if max_chapters and max_chapters < len(chapter_urls):
+            # Handle range selection
+            total_chapters = len(chapter_urls)
+            selected_range = chapter_range
+            
+            # If range_callback is provided and no range was explicitly given, use it
+            if range_callback and not selected_range:
+                selected_range = range_callback(total_chapters)
+            
+            # Apply range if specified
+            if selected_range:
+                start, end = scrape_util.parse_range(selected_range, total_chapters)
+                chapter_urls = chapter_urls[start:end]
+                if self.progress_reporter:
+                    self.progress_reporter.print(
+                        f"Selected range {selected_range}: downloading chapters {start+1} to {end} (Total: {len(chapter_urls)})"
+                    )
+            # Apply chapter limit if specified and no range was used
+            elif max_chapters and max_chapters < total_chapters:
                 chapter_urls = chapter_urls[:max_chapters]
                 if self.progress_reporter:
                     self.progress_reporter.print(
-                        f"Limiting to {max_chapters} chapters (out of {len(chapter_urls)} available)"
+                        f"Limiting to {max_chapters} chapters (out of {total_chapters} available)"
                     )
             
             # Prepare to scrape chapters

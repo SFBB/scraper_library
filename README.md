@@ -5,6 +5,8 @@ The Scraper Library is a Python-based module designed to scrape and process data
 ## Features
 
 - **Multi-Source Scraping**: Supports scraping from multiple platforms like 69Shu, Ximalaya, Syosetu, and more.
+- **Chapter Selection**: Support for selecting specific chapter ranges (e.g., `1-10`, `50-`, `-100`, `all`).
+- **Interactive Mode**: Allows choosing the download range after the total chapter count is retrieved.
 - **Adapters**: Includes text and audio file adapters for flexible data handling.
 - **Progress Tracking**: Provides real-time progress reporting during scraping operations.
 - **Threading**: Utilizes multi-threading for efficient data scraping.
@@ -37,7 +39,21 @@ Run the scrapers using the provided CLI or scripts. For example:
 
 ```bash
 uv run src/novel_scraper_cli.py --scraper syosetu https://ncode.syosetu.com/n2267be/
+```
 
+### Advanced Usage
+
+You can specify a range of chapters to download:
+
+```bash
+# Download chapters 1 to 50
+uv run src/novel_scraper_cli.py --scraper syosetu <URL> --range 1-50
+
+# Download from chapter 100 to the end
+uv run src/novel_scraper_cli.py --scraper syosetu <URL> --range 100-
+
+# Interactive mode (choosing after seeing total count)
+uv run src/novel_scraper_cli.py --scraper syosetu <URL> --interactive
 ```
 
 ## Supported Scrapers

@@ -159,6 +159,67 @@ class scrape_util():
         for i in range(0, len(l), n):
             yield l[i: i+n]
 
+    @staticmethod
+    def parse_range(range_str: str, total_count: int) -> tuple[int, int]:
+        """
+        Parse a range string like '1-10', '5-', '-10', 'all' or '5'
+        Returns (start_index, end_index) for slicing (0-based, end exclusive)
+        """
+        if not range_str or range_str.lower() == 'all':
+            return 0, total_count
+        
+        if '-' not in range_str:
+            try:
+                val = int(range_str)
+                # Single number N is treated as first N chapters (1-N)
+                return 0, min(total_count, max(0, val))
+            except ValueError:
+                return 0, total_count
+
+        parts = range_str.split('-')
+        start_part = parts[0].strip()
+        end_part = parts[1].strip()
+        
+        # If both are empty (just "-"), return all
+        if not start_part and not end_part:
+            return 0, total_count
+            
+        # Case "-10" (up to 10)
+        if not start_part:
+            try:
+                end = int(end_part)
+                return 0, min(total_count, max(0, end))
+            except ValueError:
+                return 0, total_count
+                
+        # Case "5-" (from 5 onwards)
+        if not end_part:
+            try:
+                start = int(start_part) - 1
+                return max(0, min(total_count, start)), total_count
+            except ValueError:
+                return 0, total_count
+                
+        # Case "5-10" or "10-5"
+        try:
+            val1 = int(start_part)
+            val2 = int(end_part)
+            
+            start_val = min(val1, val2)
+            end_val = max(val1, val2)
+            
+            start = max(0, start_val - 1)
+            end = min(total_count, end_val)
+            
+            if start > total_count:
+                start = total_count
+            if end < 0:
+                end = 0
+                
+            return start, end
+        except ValueError:
+            return 0, total_count
+
 
 class multi_thread_scrape():
     def __init__(self, max_thread_num: int, scraping_list: list[str], method: FunctionType):
