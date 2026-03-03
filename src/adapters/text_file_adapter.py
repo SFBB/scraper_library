@@ -28,7 +28,7 @@ class TextFileAdapter(Adapter):
         
         Args:
             novel_info: Dictionary with novel metadata
-            chapters: List of dictionaries with chapter data
+            chapters: List of dictionaries with chapter/structural data
             
         Returns:
             Dictionary with processing results including file path
@@ -47,18 +47,30 @@ class TextFileAdapter(Adapter):
             with open(self.file_path, "w", encoding="utf-8") as file:
                 # Write title and author
                 if self.include_metadata:
-                    file.write(f"{title}\n\n\n{author}\n\n\n\n\n\n\n\n\n")
+                    file.write(f"{title}\n\n\n{author}\n\n\n")
+                    
+                    # Generate and write TOC
+                    toc = self._generate_toc(chapters)
+                    if toc:
+                        file.write("TOC\n\n")
+                        file.write(toc)
+                        file.write("\n\n\n\n\n\n\n")
                 
-                # Write each chapter
-                for chapter in chapters:
-                    chapter_title = chapter.get("title", "")
-                    chapter_content = chapter.get("content", "")
-                    file.write(f"{chapter_title}\n\n\n{chapter_content}\n\n\n\n\n\n")
+                # Write each item (chapter or volume/part)
+                for item in chapters:
+                    if item.get("type") in ("volume", "part"):
+                        volume_title = item.get("title", "")
+                        file.write(f"{volume_title}\n\n\n")
+                    else:
+                        chapter_title = item.get("title", "")
+                        chapter_content = item.get("content", "")
+                        if chapter_content: # Only write if we have content
+                            file.write(f"{chapter_title}\n\n\n{chapter_content}\n\n\n\n\n\n")
                     
             return {
                 "status": "success",
                 "file_path": os.path.abspath(self.file_path),
-                "chapters_saved": len(chapters)
+                "chapters_saved": sum(1 for item in chapters if item.get("type") == "chapter")
             }
             
         except Exception as e:
@@ -69,6 +81,18 @@ class TextFileAdapter(Adapter):
                 "error": str(e)
             }
     
+    def _generate_toc(self, items: List[Dict[str, Any]]) -> str:
+        """Generate a Table of Contents string from items"""
+        toc_lines = []
+        for item in items:
+            if item.get("type") in ("volume", "part"):
+                toc_lines.append(item.get("title", ""))
+            elif item.get("type") == "chapter":
+                title = item.get("title", "")
+                if title:
+                    toc_lines.append(f"  {title}")
+        return "\n".join(toc_lines)
+
     def cleanup(self) -> None:
         """Remove the file if it exists but is incomplete"""
         if os.path.exists(self.file_path):

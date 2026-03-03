@@ -82,55 +82,18 @@ class NovelScraperCoordinator:
             
             # Get index pages
             if self.progress_reporter:
-                self.progress_reporter.print("Retrieving index pages...")
-            index_pages = self.scraper.get_index_pages(novel_url)
+                self.progress_reporter.print("Retrieving index structure...")
             
-            # Get chapter URLs from all index pages
+            # Use get_index_structure instead of get_index_pages + get_chapter_urls
+            full_structure = self.scraper.get_index_structure(novel_url)
+            
+            # Extract only chapter items for downloading
+            chapter_items = [item for item in full_structure if item["type"] == "chapter"]
+            chapter_urls = [item["url"] for item in chapter_items]
+            
             if self.progress_reporter:
-                self.progress_reporter.print(f"Found {len(index_pages)} index pages")
-                self.progress_reporter.print("Retrieving chapter URLs...")
-            
-            chapter_urls = []
-            
-            # Use threading for index pages if there are enough of them
-            if len(index_pages) >= 3 and self.max_threads > 1:
-                # Define the processing function for each index page
-                def process_index(index_url: str, index: int) -> List[str]:
-                    urls = self.scraper.get_chapter_urls(index_url)
-                    time.sleep(self.delay)  # Be nice to the server
-                    return urls
-                
-                # Define the chunk handler to report progress
-                def chunk_handler(chunk_start: int, chunk: List[str], results: Dict[int, List[str]]) -> List[str]:
-                    all_urls = []
-                    for i in range(len(chunk)):
-                        index = chunk_start + i
-                        if index in results:
-                            urls = results[index]
-                            all_urls.extend(urls)
-                            if self.progress_reporter:
-                                self.progress_reporter.print(
-                                    f"\t[{index+1}/{len(index_pages)}] Found {len(urls)} chapters"
-                                )
-                    return all_urls
-                
-                # Process index pages in parallel
-                chapter_urls = self.threading_manager.process_in_parallel(
-                    index_pages,
-                    process_index,
-                    chunk_handler,
-                    min(self.max_threads, len(index_pages))
-                )
-            else:
-                # Sequential processing for a small number of index pages
-                for i, index_url in enumerate(index_pages):
-                    urls = self.scraper.get_chapter_urls(index_url)
-                    chapter_urls.extend(urls)
-                    if self.progress_reporter:
-                        self.progress_reporter.print(
-                            f"\t[{i+1}/{len(index_pages)}] Found {len(urls)} chapters"
-                        )
-                    time.sleep(self.delay)  # Be nice to the server
+                total_parts = sum(1 for item in full_structure if item["type"] in ("volume", "part"))
+                self.progress_reporter.print(f"Found {len(chapter_urls)} chapters and {total_parts} parts")
             
             # Handle range selection
             total_chapters = len(chapter_urls)
@@ -143,14 +106,47 @@ class NovelScraperCoordinator:
             # Apply range if specified
             if selected_range:
                 start, end = scrape_util.parse_range(selected_range, total_chapters)
-                chapter_urls = chapter_urls[start:end]
+                selected_chapter_urls = chapter_urls[start:end]
+                
+                # Rebuild full_structure to only include selected chapters and their preceding parts
+                new_structure = []
+                current_part = None
+                for item in full_structure:
+                    if item["type"] in ("volume", "part"):
+                        current_part = item
+                    elif item["type"] == "chapter":
+                        if item["url"] in selected_chapter_urls:
+                            if current_part:
+                                new_structure.append(current_part)
+                                current_part = None # Clear so we don't add it again for the next chapter
+                            new_structure.append(item)
+                
+                full_structure = new_structure
+                chapter_urls = selected_chapter_urls
+                
                 if self.progress_reporter:
                     self.progress_reporter.print(
                         f"Selected range {selected_range}: downloading chapters {start+1} to {end} (Total: {len(chapter_urls)})"
                     )
             # Apply chapter limit if specified and no range was used
             elif max_chapters and max_chapters < total_chapters:
-                chapter_urls = chapter_urls[:max_chapters]
+                selected_chapter_urls = chapter_urls[:max_chapters]
+                
+                new_structure = []
+                current_part = None
+                for item in full_structure:
+                    if item["type"] in ("volume", "part"):
+                        current_part = item
+                    elif item["type"] == "chapter":
+                        if item["url"] in selected_chapter_urls:
+                            if current_part:
+                                new_structure.append(current_part)
+                                current_part = None
+                            new_structure.append(item)
+                
+                full_structure = new_structure
+                chapter_urls = selected_chapter_urls
+                
                 if self.progress_reporter:
                     self.progress_reporter.print(
                         f"Limiting to {max_chapters} chapters (out of {total_chapters} available)"
@@ -161,7 +157,8 @@ class NovelScraperCoordinator:
                 self.progress_reporter.print(f"Scraping {len(chapter_urls)} chapters...")
                 self.progress_reporter.initialize_progress(len(chapter_urls))
             
-            chapters = []
+            # Mapping from URL to downloaded content
+            downloaded_chapters = {}
             
             # Use threading for chapters if there are enough of them
             if len(chapter_urls) >= 3 and self.max_threads > 1:
@@ -177,7 +174,9 @@ class NovelScraperCoordinator:
                     for i in range(len(chunk)):
                         index = chunk_start + i
                         if index in results:
-                            chunk_results.append(results[index])
+                            content = results[index]
+                            downloaded_chapters[chunk[i]] = content
+                            chunk_results.append(content)
                     
                     # Update progress
                     if self.progress_reporter:
@@ -189,7 +188,7 @@ class NovelScraperCoordinator:
                     return chunk_results
                 
                 # Process chapters in parallel
-                chapters = self.threading_manager.process_in_parallel(
+                self.threading_manager.process_in_parallel(
                     chapter_urls,
                     process_chapter,
                     chunk_handler,
@@ -199,7 +198,7 @@ class NovelScraperCoordinator:
                 # Sequential processing for a small number of chapters
                 for i, chapter_url in enumerate(chapter_urls):
                     content = self.scraper.get_chapter_content(chapter_url)
-                    chapters.append(content)
+                    downloaded_chapters[chapter_url] = content
                     
                     # Update progress
                     if self.progress_reporter:
@@ -210,11 +209,23 @@ class NovelScraperCoordinator:
                     
                     time.sleep(self.delay)  # Be nice to the server
             
+            # Combine structure with downloaded content
+            final_chapters_with_structure = []
+            for item in full_structure:
+                if item["type"] == "chapter":
+                    if item["url"] in downloaded_chapters:
+                        # Update the structure item with content
+                        chapter_content = downloaded_chapters[item["url"]]
+                        item.update(chapter_content)
+                        final_chapters_with_structure.append(item)
+                else:
+                    final_chapters_with_structure.append(item)
+
             # Process with the adapter
             if self.progress_reporter:
                 self.progress_reporter.print("Processing scraped content...")
             
-            result = self.adapter.process_novel(novel_info, chapters)
+            result = self.adapter.process_novel(novel_info, final_chapters_with_structure)
             
             # Report completion
             if self.progress_reporter:

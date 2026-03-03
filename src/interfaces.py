@@ -78,6 +78,23 @@ class NovelScraper(Scraper):
             all_chapter_urls.extend(chapter_urls)
         
         return all_chapter_urls
+
+    def get_index_structure(self, url: str) -> List[Dict[str, Any]]:
+        """
+        Get the hierarchical structure of the novel (parts and chapters).
+        
+        Args:
+            url: Main novel URL
+            
+        Returns:
+            List of dictionaries, each containing:
+            - 'type': 'volume' (or 'part') or 'chapter'
+            - 'title': Title of the volume/part or chapter
+            - 'url': URL of the chapter (only for type='chapter')
+        """
+        # Default implementation for backward compatibility
+        chapter_urls = self.get_chapter_list(url)
+        return [{"type": "chapter", "url": url, "title": ""} for url in chapter_urls]
     
     @abstractmethod
     def get_chapter_content(self, chapter_url: str) -> Dict[str, Any]:

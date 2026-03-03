@@ -51,16 +51,26 @@ class ScraperSyosetu(NovelScraper):
                 )
 
             # Extract author
-            author_elem = page.select("div.novel_writername a")
-            if author_elem:
-                author = author_elem[0].text.strip().replace("作者：", "")
-            else:
-                author_elem = page.select("div.novel_writername")
-                author = (
-                    author_elem[0].text.strip().replace("作者：", "")
-                    if author_elem
-                    else "Unknown Author"
-                )
+            author_selectors = [
+                "div.novel_writername a",
+                "div.novel_writername",
+                "div.p-novel__author a",
+                "div.p-novel__author",
+                ".p-eplist__author",
+            ]
+            
+            author = "Unknown Author"
+            for selector in author_selectors:
+                elements = page.select(selector)
+                if elements:
+                    author_text = elements[0].text.strip()
+                    # Clean up common prefixes
+                    for prefix in ["作者：", "作者:", "Author:", "Author："]:
+                        if author_text.startswith(prefix):
+                            author_text = author_text[len(prefix):].strip()
+                    if author_text:
+                        author = author_text
+                        break
 
             # Extract description
             description_elem = page.select("div#novel_ex")
@@ -119,6 +129,53 @@ class ScraperSyosetu(NovelScraper):
             ]
         except Exception as e:
             raise ValueError(f"Failed to extract chapter URLs: {str(e)}")
+
+    def get_index_structure(self, url: str) -> List[Dict[str, Any]]:
+        """Get the hierarchical structure of the novel (parts and chapters)"""
+        index_pages = self.get_index_pages(url)
+        structure = []
+
+        for index_url in index_pages:
+            page = scrape_util.scrape_url(index_url, "html.parser")
+            
+            # Find all potential index items (chapters and parts)
+            # In Syosetu, parts are 'div.chapter_title' and chapters are 'dl.novel_sublist2'
+            # Or in the newer layout, they might be different
+            
+            # Use a more general approach: iterate through children of the index box
+            index_box = page.select_one("div.index_box") or page.select_one("div.p-eplist")
+            
+            if not index_box:
+                # Fallback to the old method if we can't find the container
+                chapter_urls = self.get_chapter_urls(index_url)
+                for curl in chapter_urls:
+                    structure.append({"type": "chapter", "url": curl, "title": ""})
+                continue
+
+            for element in index_box.children:
+                if element.name == "div" and ("chapter_title" in element.get("class", []) or "p-eplist__chapter-title" in element.get("class", [])):
+                    structure.append({
+                        "type": "volume",
+                        "title": element.text.strip()
+                    })
+                elif element.name == "dl" and ("novel_sublist2" in element.get("class", [])):
+                    link = element.select_one("a")
+                    if link and "href" in link.attrs:
+                        structure.append({
+                            "type": "chapter",
+                            "url": f"{self.base_url}{link['href']}",
+                            "title": link.text.strip()
+                        })
+                elif element.name == "div" and ("p-eplist__sublist" in element.get("class", [])):
+                    link = element.select_one("a.p-eplist__subtitle")
+                    if link and "href" in link.attrs:
+                        structure.append({
+                            "type": "chapter",
+                            "url": f"{self.base_url}{link['href']}",
+                            "title": link.text.strip()
+                        })
+
+        return structure
 
     def get_chapter_content(self, chapter_url: str) -> Dict[str, Any]:
         """Get content from a chapter URL"""
