@@ -38,7 +38,13 @@ class TextFileAdapter(Adapter):
         
         # Create file path if not provided
         if not self.file_path:
-            self.file_path = f"{title} - {author}.txt"
+            filename = f"{title} - {author}.txt"
+            # Sanitize filename: replace illegal characters with underscore
+            # Especially for Linux where '/' is not allowed in filenames
+            illegal_chars = ['/', '\\', '*', '?', ':', '"', '<', '>', '|']
+            for char in illegal_chars:
+                filename = filename.replace(char, '_')
+            self.file_path = filename
         elif not self.file_path.endswith(".txt"):
             self.file_path = f"{self.file_path}.txt"
             
